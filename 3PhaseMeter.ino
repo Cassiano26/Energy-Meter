@@ -7,9 +7,9 @@
 
 Preferences preferences;
 
-char auth[] = "KVCU50oyIiak_140XGZmLVOvWzrtpTeo";
-char ssid[] = "Cassiano2";
-char pass[] = "Cassiano9131";
+char auth[] = "your tokem";
+char ssid[] = "******";
+char pass[] = "*******";
 
 const char* ntpServer = "pool.ntp.org";
 const long  gmtOffset_sec = -14400;
