@@ -7,22 +7,24 @@
 
 Preferences preferences;
 
-char auth[] = "your tokem";
-char ssid[] = "******";
-char pass[] = "*******";
+char auth[] = "your token";
+char ssid[] = "your wi-fi ssid";
+char pass[] = "your wi-fi password";
 
 const char* ntpServer = "pool.ntp.org";
-const long  gmtOffset_sec = -14400;
+const long  gmtOffset_sec = -14400;  // GM offset in seconds. this value can be a positive or negative number, depending on your location.
 const int   daylightOffset_sec = 3600;
 
-int horas;
-int minutos;
-int diaDaSemana;
+// Global variables 
 
-float foraPico;
-float pico;
-float reservado;
-float ultimaLeitura;
+int currentHour;
+int currentMinute;
+int currentWeekDay;
+
+float tax1;
+float tax2;
+float tax3;
+float lastEnergyValue;
 
 float voltage_phase01=0;
 float current_phase01=0;
@@ -43,11 +45,17 @@ float energy_phase01;
 float energy_phase02;
 float energy_phase03;
 
+// Declaring PZEM - 004 v3 sensors. 
+
 PZEM004Tv30 pzem0(&Serial2,16,17,0x01);
 PZEM004Tv30 pzem1(&Serial2,16,17,0x02);
 PZEM004Tv30 pzem2(&Serial2,16,17,0x03);
 
+// Blynk app Timer.
+
 BlynkTimer timer;
+
+// Functions
 
 void saveLocalTime(){
   struct tm timeinfo;
@@ -57,28 +65,31 @@ void saveLocalTime(){
   }
   char hour[3];
   strftime(hour,3, "%H", &timeinfo);
-  horas = String(hour).toInt();
+  currentHour = String(hour).toInt(); 
   Serial.println(horas);
   
   char minutes[3]; 
   strftime(minutes,3, "%M", &timeinfo);
-  minutos = String(minutes).toInt();
+  currentminute = String(minutes).toInt();
   Serial.println(minutos);
 
   char weekDay[2];
   strftime(weekDay, 2, "%u", &timeinfo);
-  diaDaSemana = String(weekDay).toInt();
+  currentWeekDay = String(weekDay).toInt();
   Serial.println(diaDaSemana);
+  
 }
 
 void WiFiStationConnected(WiFiEvent_t event, WiFiEventInfo_t info){
   Serial.println("Connected to AP successfully!");
+  
 }
 
 void WiFiGotIP(WiFiEvent_t event, WiFiEventInfo_t info){
   Serial.println("WiFi connected");
   Serial.println("IP address: ");
   Serial.println(WiFi.localIP());
+  
 }
 
 void WiFiStationDisconnected(WiFiEvent_t event, WiFiEventInfo_t info){
@@ -87,6 +98,7 @@ void WiFiStationDisconnected(WiFiEvent_t event, WiFiEventInfo_t info){
   Serial.println(info.disconnected.reason);
   Serial.println("Trying to Reconnect");
   WiFi.begin(ssid, pass);
+  
 }
 
 void readPzems(){
@@ -178,63 +190,75 @@ void readPzems(){
   } else {
     pf_phase03 = 0.0;
   }
+  
 }
 
 void getData(){
  
-  foraPico = preferences.getFloat("foraPico", 0);
-  pico = preferences.getFloat("pico", 0);
-  reservado = preferences.getFloat("reservado", 0);
-  ultimaLeitura = preferences.getFloat("ultimaLeitura", 0);
+  tax1 = preferences.getFloat("tax1", 0);
+  tax2 = preferences.getFloat("tax2", 0);
+  tax3 = preferences.getFloat("tax3", 0);
+  lastEnergyValue = preferences.getFloat("lastEnergyValue", 0);
 
   delay(1000);
+  
 }
 
-void powerDivider(){
+void taxDivider(){
+  
+  // tax
+  //     Saturday or Sunday
+  //       tax1 06:00 to 21:30
+  //       tax3 21:30 to 06:00
+  //     Other days
+  //       tax1 06:00 to 17:30 and 20:30 to 21:30
+  //       tax2 17:30 to 20:30
+  //       tax3 21:30 to 06:00
 
-  float energiaTotal = energy_phase01 + energy_phase02 + energy_phase03;
-  float energiaTotalParaSalvar = energiaTotal - ultimaLeitura;
+  float totalEnergy = energy_phase01 + energy_phase02 + energy_phase03;
+  float totalEnergyToSave = totalEnergy - totalEnergyToSave;
 
-  if (diaDaSemana == 0 || diaDaSemana == 6 ) {
-    if(horas >= 6 && horas < 21) {
-      foraPico = foraPico + energiaTotalParaSalvar;
-      preferences.putFloat("foraPico", foraPico);
-    } else if(horas == 21 && minutos < 30) {
-      foraPico = foraPico + energiaTotalParaSalvar;
-      preferences.putFloat("foraPico", foraPico);;
+  if (currentWeekDay == 0 || currentWeekDay == 6 ) {
+    if(currentHour >= 6 && horas currentHour < 21) {
+      tax1 = tax1 + totalEnergyToSave;
+      preferences.putFloat("tax1", tax1);
+    } else if(currentHour == 21 && currentMinute < 30) {
+      tax1 = tax1 + totalEnergyToSave;
+      preferences.putFloat("tax1", tax1);
     } else {
-      reservado = reservado + energiaTotalParaSalvar;
-      preferences.putFloat("reservado", reservado);  
+      tax3 = tax3 + totalEnergyToSave;
+      preferences.putFloat("tax3", tax3);  
     }
   } else {
-    if (horas >= 6 && horas < 17 ){
-      foraPico = foraPico + energiaTotalParaSalvar;
-      preferences.putFloat("foraPico", foraPico);
-    } else if(horas == 17 && minutos < 30) {
-      foraPico = foraPico + energiaTotalParaSalvar;
-      preferences.putFloat("foraPico", foraPico);
-    } else if(horas == 17 && minutos >= 30) {
-      pico = pico + energiaTotalParaSalvar;
-      preferences.putFloat("pico", pico);
-    } else if(horas == 18 || horas == 19) {
-      pico = pico + energiaTotalParaSalvar;
-      preferences.putFloat("pico", pico);
-    } else if(horas == 20 && minutos < 30) {
-      pico = pico + energiaTotalParaSalvar;
-      preferences.putFloat("pico", pico);
-    } else if(horas == 20 && minutos >= 30) {
-      foraPico = foraPico + energiaTotalParaSalvar;
-      preferences.putFloat("foraPico", foraPico);
-    } else if(horas == 21 && minutos < 30) {
-      foraPico = foraPico + energiaTotalParaSalvar;
-      preferences.putFloat("foraPico", foraPico);
+    if (currentHour >= 6 && currentHour < 17 ){
+      tax1 = tax1 + totalEnergyToSave;
+      preferences.putFloat("tax1", tax1);
+    } else if(currentHour == 17 && currentMinute < 30) {
+      tax1 = tax1 + totalEnergyToSave;
+      preferences.putFloat("tax1", tax1);
+    } else if(currentHour == 17 && currentMinute >= 30) {
+      tax2 = tax2 + totalEnergyToSave;
+      preferences.putFloat("tax2", tax2);
+    } else if(currentHour == 18 || currentHour == 19) {
+      tax2 = tax2 + totalEnergyToSave;
+      preferences.putFloat("tax2", tax2);
+    } else if(currentHour == 20 && currentMinute < 30) {
+      tax2 = tax2 + totalEnergyToSave;
+      preferences.putFloat("tax2", tax2);
+    } else if(currentHour == 20 && currentMinute >= 30) {
+      tax1 = tax1 + totalEnergyToSave;
+      preferences.putFloat("tax1", tax1);
+    } else if(currentHour == 21 && currentMinute < 30) {
+      tax1 = tax1 + totalEnergyToSave;
+      preferences.putFloat("tax1", tax1);
     } else {
-      reservado = reservado + energiaTotalParaSalvar;
-      preferences.putFloat("reservado", reservado);
+      tax3 = tax3 + totalEnergyToSave;
+      preferences.putFloat("tax3", tax3);
     }  
+    
   }
 
-  preferences.putFloat("ultimaLeitura", energiaTotal);
+  preferences.putFloat("lastEnergyValue", totalEnergy);
 
   delay(1000);
   
@@ -245,7 +269,9 @@ void myTimerEvent(){
   saveLocalTime(); 
   readPzems();
   getData();
-  powerDivider();
+  taxDivider();
+  
+  // Sending data to blynk app.
   
   Blynk.virtualWrite(V0, voltage_phase01);
   Blynk.virtualWrite(V1, current_phase01);            
@@ -265,14 +291,17 @@ void myTimerEvent(){
   Blynk.virtualWrite(V12, foraPico);
   Blynk.virtualWrite(V13, pico);
   Blynk.virtualWrite(V14, reservado);
+  
 }
+
+// Setup
 
 void setup() {
   Serial.begin(115200);
 
   configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
 
-  preferences.begin("acumulados", false);
+  preferences.begin("accumulated", false);
 
   WiFi.disconnect(true);
 
@@ -284,9 +313,13 @@ void setup() {
 
   Blynk.begin(auth, ssid, pass);
   timer.setInterval(10000L, myTimerEvent);
+  
 }
+
+// Loop. This area has always must be clean.
 
 void loop() {
   Blynk.run();
   timer.run();
+  
 }
