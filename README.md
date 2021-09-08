@@ -9,10 +9,10 @@ Specifications:
     - 0 A to 100 A
 
 2. Tax country
-    2.1 Saturday or Sunday
+      - Saturday or Sunday
       - tax1: 06:00 to 21:30
       - tax3: 21:30 to 06:00
-    2.1 Other days
+      - Other days
       - tax1: 06:00 to 17:30 and 20:30 to 21:30
       - tax2: 17:30 to 20:30
       - tax3: 21:30 to 06:00
