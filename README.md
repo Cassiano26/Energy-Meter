@@ -1,6 +1,6 @@
 # Energy-Meter
-    This code is a 3 phase meter project that uses ESP32 to run the code, PZEM 004 v3 hardware to make sensor readings, and Blynk app software to visualize data. It can help to calculate the energy bill and manage 3 different electrical phases.
-    There are different types of energy bill taxes depending on each country. Below is possible to see whats taxes this code uses depending on the hour or weekday and other specifications.
+This code is a 3 phase meter project that uses ESP32 to run the code, PZEM 004 v3 hardware to make sensor readings, and Blynk app software to visualize data. It can help to calculate the energy bill and manage 3 different electrical phases.
+There are different types of energy bill taxes depending on each country. Below is possible to see whats taxes this code uses depending on the hour or weekday and other specifications.
 
 Specifications:
 
