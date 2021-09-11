@@ -7,9 +7,9 @@
 
 Preferences preferences;
 
-char auth[] = "your token";
-char ssid[] = "your wi-fi ssid";
-char pass[] = "your wi-fi password";
+char auth[] = "KVCU50oyIiak_140XGZmLVOvWzrtpTeo";
+char ssid[] = "Cassiano2";
+char pass[] = "Cassiano9131";
 
 const char* ntpServer = "pool.ntp.org";
 const long  gmtOffset_sec = -14400;  // GM offset in seconds. this value can be a positive or negative number, depending on your location.
@@ -66,17 +66,17 @@ void saveLocalTime(){
   char hour[3];
   strftime(hour,3, "%H", &timeinfo);
   currentHour = String(hour).toInt(); 
-  Serial.println(horas);
+  Serial.println(currentHour);
   
   char minutes[3]; 
   strftime(minutes,3, "%M", &timeinfo);
-  currentminute = String(minutes).toInt();
-  Serial.println(minutos);
+  currentMinute = String(minutes).toInt();
+  Serial.println(currentMinute);
 
   char weekDay[2];
   strftime(weekDay, 2, "%u", &timeinfo);
   currentWeekDay = String(weekDay).toInt();
-  Serial.println(diaDaSemana);
+  Serial.println(currentWeekDay);
   
 }
 
@@ -216,10 +216,10 @@ void taxDivider(){
   //       tax3 21:30 to 06:00
 
   float totalEnergy = energy_phase01 + energy_phase02 + energy_phase03;
-  float totalEnergyToSave = totalEnergy - totalEnergyToSave;
+  float totalEnergyToSave = totalEnergy - lastEnergyValue;
 
   if (currentWeekDay == 0 || currentWeekDay == 6 ) {
-    if(currentHour >= 6 && horas currentHour < 21) {
+    if(currentHour >= 6 && currentHour < 21) {
       tax1 = tax1 + totalEnergyToSave;
       preferences.putFloat("tax1", tax1);
     } else if(currentHour == 21 && currentMinute < 30) {
@@ -288,9 +288,9 @@ void myTimerEvent(){
   Blynk.virtualWrite(V10, power_phase03);
   Blynk.virtualWrite(V11, pf_phase03);
   
-  Blynk.virtualWrite(V12, foraPico);
-  Blynk.virtualWrite(V13, pico);
-  Blynk.virtualWrite(V14, reservado);
+  Blynk.virtualWrite(V12, tax1);
+  Blynk.virtualWrite(V13, tax2);
+  Blynk.virtualWrite(V14, tax3);
   
 }
 
