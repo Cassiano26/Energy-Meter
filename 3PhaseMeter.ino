@@ -228,7 +228,7 @@ void checkPzemResetEnergy() {
   }
 
   if(pzem3LastEnergyReading > energy_phase03) {
-    preferences.putFloat("pzem3LastEnergyReading", 0.0)
+    preferences.putFloat("pzem3LastEnergyReading", 0.0);
   }
 }
 
