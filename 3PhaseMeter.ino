@@ -20,7 +20,8 @@ const int   daylightOffset_sec = 3600;
 int currentHour;
 int currentMinute;
 int currentWeekDay;
-bool wrongTime = true;
+
+bool wrongTime;
 
 float tax1;
 float tax2;
@@ -29,7 +30,6 @@ float noTax;
 float pzem1LastEnergyReading;
 float pzem2LastEnergyReading;
 float pzem3LastEnergyReading;
-// float lastEnergyValue;
 
 float voltage_phase01;
 float current_phase01;
@@ -173,7 +173,7 @@ void checkPzemResetEnergy() {
   if(pzem3LastEnergyReading > energy_phase03) {
     pzem3LastEnergyReading = 0.0;
   }
-  
+
 }
 
 void checkPzemError() {
@@ -280,28 +280,28 @@ void myTimerEvent(){
   if(errorPzem1 || errorPzem2 || errorPzem3) {
    
     if(errorPzem1){
-      Blynk.setProperty(V16, "color", "#d3435c");
-    } else {
-      Blynk.setProperty(V16, "color", "#5cd343");
-    }
-
-    if(errorPzem2) {
       Blynk.setProperty(V17, "color", "#d3435c");
     } else {
       Blynk.setProperty(V17, "color", "#5cd343");
     }
 
-    if(errorPzem3) {
+    if(errorPzem2) {
       Blynk.setProperty(V18, "color", "#d3435c");
     } else {
       Blynk.setProperty(V18, "color", "#5cd343");
+    }
+
+    if(errorPzem3) {
+      Blynk.setProperty(V19, "color", "#d3435c");
+    } else {
+      Blynk.setProperty(V19, "color", "#5cd343");
     }
 
   } else if(wrongTime) {
 
     calculateAndStorege();
     noTax = noTax + totalEnergy;
-    preferences.putFloat("noTax", noTax)
+    preferences.putFloat("noTax", noTax);
 
     delay(1000);
 
@@ -332,13 +332,14 @@ void myTimerEvent(){
     Blynk.virtualWrite(V13, tax1);
     Blynk.virtualWrite(V14, tax2);
     Blynk.virtualWrite(V15, tax3);
+    Blynk.virtualWrite(V16, noTax);
 
     // red: #d3435c
     // green: #5cd343
 
-    Blynk.setProperty(V16, "color", "#5cd343");
     Blynk.setProperty(V17, "color", "#5cd343");
     Blynk.setProperty(V18, "color", "#5cd343");
+    Blynk.setProperty(V19, "color", "#5cd343");
   
   }
    
