@@ -31,30 +31,39 @@ float pzem2LastEnergyReading;
 float pzem3LastEnergyReading;
 // float lastEnergyValue;
 
-float voltage_phase01=0;
-float current_phase01=0;
-float power_phase01=0;
-float pf_phase01=0;
+float voltage_phase01;
+float current_phase01;
+float power_phase01;
+float pf_phase01;
+float frequency_phase01; 
 
-float voltage_phase02=0;
-float current_phase02=0;
-float power_phase02=0;
-float pf_phase02=0;
+float voltage_phase02;
+float current_phase02;
+float power_phase02;
+float pf_phase02;
+float frequency_phase02;
 
-float voltage_phase03=0;
-float current_phase03=0;
-float power_phase03=0;
-float pf_phase03=0;
+float voltage_phase03;
+float current_phase03;
+float power_phase03;
+float pf_phase03;
+float frequency_phase03;
 
 float energy_phase01;
 float energy_phase02;
 float energy_phase03;
 
+float totalEnergy;
+
+bool errorPzem1;
+bool errorPzem2;
+bool errorPzem3;
+
 // Declaring PZEM - 004 v3 sensors. 
 
-PZEM004Tv30 pzem0(&Serial2,16,17,0x01);
-PZEM004Tv30 pzem1(&Serial2,16,17,0x02);
-PZEM004Tv30 pzem2(&Serial2,16,17,0x03);
+PZEM004Tv30 pzem1(&Serial2,16,17,0x01);
+PZEM004Tv30 pzem2(&Serial2,16,17,0x02);
+PZEM004Tv30 pzem3(&Serial2,16,17,0x03);
 
 // Blynk app Timer.
 
@@ -111,94 +120,30 @@ void WiFiStationDisconnected(WiFiEvent_t event, WiFiEventInfo_t info){
 }
 
 void readPzems(){
-  float voltage = pzem0.voltage();
-  if (!isnan(voltage)) {
-    Serial.print("Voltage: "); Serial.print(voltage); Serial.println("V");
-    voltage_phase01 = voltage;
-  } else {
-    voltage_phase01 = 0.0;
-    Serial.println("Error reading voltage");
-  }
-  float current = pzem0.current();
-  if (!isnan(current)) {
-    current_phase01 = current;
-  } else {
-    current_phase01 = 0.0;
-  }
-  float power = pzem0.power();
-  if (!isnan(power)) {
-    power_phase01 = power;
-  } else {
-    power_phase01 = 0.0;
-  }
-  float energy = pzem0.energy();
-  if (!isnan(energy)) {
-    energy_phase01 = energy;
-  }
-  float pf = pzem0.pf();
-  if (!isnan(pf)) {
-    pf_phase01 = pf;
-  } else {
-    pf_phase01 = 0.0;
-  }
   
-  voltage = pzem1.voltage();
-  if (!isnan(voltage)) {
-    voltage_phase02 = voltage;
-  } else {
-    voltage_phase02 = 0.0;
-  }
-  current = pzem1.current();
-  if (!isnan(current)) {
-    current_phase02 = current;
-  } else {
-    current_phase02 = 0.0;
-  }
-  power = pzem1.power();
-  if (!isnan(power)) {
-    power_phase02 = power;
-  } else {
-    power_phase02 = 0.0;
-  }
-  energy = pzem1.energy();
-  if (!isnan(energy)) {
-    energy_phase02 = energy;
-  }
-  pf = pzem1.pf();
-  if (!isnan(pf)) {
-    pf_phase02 = pf;
-  } else {
-    pf_phase02 = 0.0;
-  }
+  energy_phase01 = pzem1.energy();
+  energy_phase02 = pzem2.energy();
+  energy_phase03 = pzem3.energy();
 
-  voltage = pzem2.voltage();
-  if (!isnan(voltage)) {
-    voltage_phase03 = voltage;
-  } else {
-    voltage_phase03 = 0.0;
-  }
-  current = pzem2.current();
-  if (!isnan(current)) {
-    current_phase03 = current;
-  } else {
-    current_phase03 = 0.0;
-  }
-  power = pzem2.power();
-  if (!isnan(power)) {
-    power_phase03 = power;
-  } else {
-    power_phase03 = 0.0;
-  }
-  energy = pzem2.energy();
-  if (!isnan(energy)) {
-    energy_phase03 = energy;
-  }
-  pf = pzem2.pf();
-  if (!isnan(pf)) {
-    pf_phase03 = pf;
-  } else {
-    pf_phase03 = 0.0;
-  }
+  voltage_phase01 = pzem1.voltage();
+  current_phase01 = pzem1.current();
+  power_phase01 = pzem1.power(); 
+  pf_phase01 = pzem1.pf();
+  frequency_phase01 = pzem1.frequency();
+
+  voltage_phase02 = pzem2.voltage();
+  current_phase02 = pzem2.current();
+  power_phase02 = pzem2.power(); 
+  pf_phase02 = pzem2.pf();
+  frequency_phase02 = pzem2.frequency();
+
+  voltage_phase03 = pzem3.voltage();
+  current_phase03 = pzem3.current();
+  power_phase03 = pzem3.power(); 
+  pf_phase03 = pzem3.pf();
+  frequency_phase03 = pzem3.frequency();
+
+  checkPzemError();
   
 }
 
@@ -212,30 +157,51 @@ void getData(){
   pzem2LastEnergyReading = preferences.getFloat("pzem2LastEnergyReading", 0);
   pzem3LastEnergyReading = preferences.getFloat("pzem3LastEnergyReading", 0);
 
-  //lastEnergyValue = preferences.getFloat("lastEnergyValue", 0);
-
-  delay(1000);
+  delay(500);
   
 }
 
 void checkPzemResetEnergy() {
   if (pzem1LastEnergyReading > energy_phase01) {
-    preferences.putFloat("pzem1LastEnergyReading", 0.0);
+    pzem1LastEnergyReading = 0.0;
   } 
   
   if(pzem2LastEnergyReading > energy_phase02){
-    preferences.putFloat("pzem2LastEnergyReading", 0.0);
+    pzem2LastEnergyReading = 0.0;
   }
 
   if(pzem3LastEnergyReading > energy_phase03) {
-    preferences.putFloat("pzem3LastEnergyReading", 0.0);
+    pzem3LastEnergyReading = 0.0;
   }
+  
+}
+
+void checkPzemError() {
+
+  if(isnan(energy_phase01)) {
+    errorPzem1 = true;
+  } else {
+    errorPzem1 = false;
+  }
+
+  if(isnan(energy_phase02)) {
+    errorPzem2 = true;
+  } else {
+    errorPzem2 = false;
+  }
+
+  if(isnan(energy_phase03)) {
+    errorPzem3 = true;
+  } else {
+    errorPzem3 = false;
+  }
+
 }
 
 void taxDivider(){
 
-  checkPzemResetEnergy();
-  
+  calculateAndStorege();
+
   // tax
   //     Saturday - 6. or Sunday - 7.
   //       tax1 06:00 to 21:30
@@ -243,98 +209,139 @@ void taxDivider(){
   //     Other days - 1,2,3,4,5.
   //       tax1 06:00 to 17:30 and 20:30 to 21:30
   //       tax2 17:30 to 20:30
-  //       tax3 21:30 to 06:00
+  //       tax3 21:30 to 06:00  
 
-  
+  if (currentWeekDay == 6 || currentWeekDay == 7 ) {
+    if(currentHour >= 6 && currentHour < 21) {
+      tax1 = tax1 + totalEnergy;
+      preferences.putFloat("tax1", tax1);
+    } else if(currentHour == 21 && currentMinute < 30) {
+      tax1 = tax1 + totalEnergy;
+      preferences.putFloat("tax1", tax1);
+    } else {
+      tax3 = tax3 + totalEnergy;
+      preferences.putFloat("tax3", tax3);  
+      }
+  } else {
+    if (currentHour >= 6 && currentHour < 17 ){
+      tax1 = tax1 + totalEnergy;
+      preferences.putFloat("tax1", tax1);
+    } else if(currentHour == 17 && currentMinute < 30) {
+      tax1 = tax1 + totalEnergy;
+      preferences.putFloat("tax1", tax1);
+    } else if(currentHour == 17 && currentMinute >= 30) {
+      tax2 = tax2 + totalEnergy;
+      preferences.putFloat("tax2", tax2);
+    } else if(currentHour == 18 || currentHour == 19) {
+      tax2 = tax2 + totalEnergy;
+      preferences.putFloat("tax2", tax2);
+    } else if(currentHour == 20 && currentMinute < 30) {
+      tax2 = tax2 + totalEnergy;
+      preferences.putFloat("tax2", tax2);
+    } else if(currentHour == 20 && currentMinute >= 30) {
+      tax1 = tax1 + totalEnergy;
+      preferences.putFloat("tax1", tax1);
+    } else if(currentHour == 21 && currentMinute < 30) {
+      tax1 = tax1 + totalEnergy;
+      preferences.putFloat("tax1", tax1);
+    } else {
+      tax3 = tax3 + totalEnergy;
+      preferences.putFloat("tax3", tax3);
+    }  
+    
+  }
+
+}
+
+void calculateAndStorege() {
+
+  checkPzemResetEnergy();
+
   float totalEnergyPzem1 = energy_phase01 - pzem1LastEnergyReading;
   float totalEnergyPzem2 = energy_phase02 - pzem2LastEnergyReading;
   float totalEnergyPzem3 = energy_phase03 - pzem3LastEnergyReading;
 
-  float totalEnergy = totalEnergyPzem1 + totalEnergyPzem2 + totalEnergyPzem3;
+  totalEnergy = totalEnergyPzem1 + totalEnergyPzem2 + totalEnergyPzem3;
 
-  if(wrongTime){
-    noTax = noTax + totalEnergy;
-    preferences.putFloat("noTax", noTax);
-  } else {
-    if (currentWeekDay == 6 || currentWeekDay == 7 ) {
-      if(currentHour >= 6 && currentHour < 21) {
-        tax1 = tax1 + totalEnergy;
-        preferences.putFloat("tax1", tax1);
-      } else if(currentHour == 21 && currentMinute < 30) {
-        tax1 = tax1 + totalEnergy;
-        preferences.putFloat("tax1", tax1);
-      } else {
-        tax3 = tax3 + totalEnergy;
-        preferences.putFloat("tax3", tax3);  
-      }
-    } else {
-      if (currentHour >= 6 && currentHour < 17 ){
-        tax1 = tax1 + totalEnergy;
-        preferences.putFloat("tax1", tax1);
-      } else if(currentHour == 17 && currentMinute < 30) {
-        tax1 = tax1 + totalEnergy;
-        preferences.putFloat("tax1", tax1);
-      } else if(currentHour == 17 && currentMinute >= 30) {
-        tax2 = tax2 + totalEnergy;
-        preferences.putFloat("tax2", tax2);
-      } else if(currentHour == 18 || currentHour == 19) {
-        tax2 = tax2 + totalEnergy;
-        preferences.putFloat("tax2", tax2);
-      } else if(currentHour == 20 && currentMinute < 30) {
-        tax2 = tax2 + totalEnergy;
-        preferences.putFloat("tax2", tax2);
-      } else if(currentHour == 20 && currentMinute >= 30) {
-        tax1 = tax1 + totalEnergy;
-        preferences.putFloat("tax1", tax1);
-      } else if(currentHour == 21 && currentMinute < 30) {
-        tax1 = tax1 + totalEnergy;
-        preferences.putFloat("tax1", tax1);
-      } else {
-        tax3 = tax3 + totalEnergy;
-        preferences.putFloat("tax3", tax3);
-      }  
-    
-    }
-
-  }
-
-  
-
-  preferences.putFloat("lastEnergyValue", totalEnergy);
+  preferences.putFloat("pzem1LastEnergyReading", energy_phase01);
+  preferences.putFloat("pzem2LastEnergyReading", energy_phase02);
+  preferences.putFloat("pzem3LastEnergyReading", energy_phase03);
 
   delay(1000);
-  
+
 }
 
 void myTimerEvent(){
 
-  saveLocalTime(); 
   getData();
   readPzems();
-  taxDivider();
-  
-  // Sending data to blynk app.
-  
-  Blynk.virtualWrite(V0, voltage_phase01);
-  Blynk.virtualWrite(V1, current_phase01);            
-  Blynk.virtualWrite(V2, power_phase01);
-  Blynk.virtualWrite(V3, pf_phase01);
+  saveLocalTime();
 
-  Blynk.virtualWrite(V4, voltage_phase02);
-  Blynk.virtualWrite(V5, current_phase02);            
-  Blynk.virtualWrite(V6, power_phase02);
-  Blynk.virtualWrite(V7, pf_phase02);
+  if(errorPzem1 || errorPzem2 || errorPzem3) {
+   
+    if(errorPzem1){
+      Blynk.setProperty(V16, "color", "#d3435c");
+    } else {
+      Blynk.setProperty(V16, "color", "#5cd343");
+    }
+
+    if(errorPzem2) {
+      Blynk.setProperty(V17, "color", "#d3435c");
+    } else {
+      Blynk.setProperty(V17, "color", "#5cd343");
+    }
+
+    if(errorPzem3) {
+      Blynk.setProperty(V18, "color", "#d3435c");
+    } else {
+      Blynk.setProperty(V18, "color", "#5cd343");
+    }
+
+  } else if(wrongTime) {
+
+    calculateAndStorege();
+    noTax = noTax + totalEnergy;
+    preferences.putFloat("noTax", noTax)
+
+    delay(1000);
+
+  } else {
+
+    taxDivider();
   
-  Blynk.virtualWrite(V8, voltage_phase03);
-  Blynk.virtualWrite(V9, current_phase03);            
-  Blynk.virtualWrite(V10, power_phase03);
-  Blynk.virtualWrite(V11, pf_phase03);
+    // Sending data to blynk app.
   
-  Blynk.virtualWrite(V12, tax1);
-  Blynk.virtualWrite(V13, tax2);
-  Blynk.virtualWrite(V14, tax3);
-  Blynk.virtualWrite(V15, noTax);
+    Blynk.virtualWrite(V0, voltage_phase01);
+    Blynk.virtualWrite(V1, current_phase01);            
+    Blynk.virtualWrite(V2, power_phase01);
+    Blynk.virtualWrite(V3, pf_phase01);
+    Blynk.virtualWrite(V4, frequency_phase01);
+
+    Blynk.virtualWrite(V5, voltage_phase02);
+    Blynk.virtualWrite(V6, current_phase02);            
+    Blynk.virtualWrite(V7, power_phase02);
+    Blynk.virtualWrite(V8, pf_phase02);
+    Blynk.virtualWrite(V9, frequency_phase02);
   
+    Blynk.virtualWrite(V10, voltage_phase03);
+    Blynk.virtualWrite(V11, current_phase03);            
+    Blynk.virtualWrite(V12, power_phase03);
+    Blynk.virtualWrite(V13, pf_phase03);
+    Blynk.virtualWrite(V14, frequency_phase03);
+  
+    Blynk.virtualWrite(V13, tax1);
+    Blynk.virtualWrite(V14, tax2);
+    Blynk.virtualWrite(V15, tax3);
+
+    // red: #d3435c
+    // green: #5cd343
+
+    Blynk.setProperty(V16, "color", "#5cd343");
+    Blynk.setProperty(V17, "color", "#5cd343");
+    Blynk.setProperty(V18, "color", "#5cd343");
+  
+  }
+   
 }
 
 // Setup
