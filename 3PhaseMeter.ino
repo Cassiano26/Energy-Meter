@@ -7,9 +7,9 @@
 
 Preferences preferences;
 
-char auth[] = "********************************";
-char ssid[] = "************";
-char pass[] = "*******";
+char auth[] = "**********************";
+char ssid[] = "*********";
+char pass[] = "********";
 
 const char* ntpServer = "pool.ntp.org";
 const long  gmtOffset_sec = -14400;  // GM offset in seconds. this value can be a positive or negative number, depending on your location.
@@ -27,9 +27,9 @@ float tax1;
 float tax2;
 float tax3;
 float noTax;
-float pzem1LastEnergyReading;
-float pzem2LastEnergyReading;
-float pzem3LastEnergyReading;
+float pzem1LastEnergy;
+float pzem2LastEnergy;
+float pzem3LastEnergy;
 
 float voltage_phase01;
 float current_phase01;
@@ -58,6 +58,11 @@ float totalEnergy;
 bool errorPzem1;
 bool errorPzem2;
 bool errorPzem3;
+
+
+WidgetLED ledPzem1(V19);
+WidgetLED ledPzem2(V20);
+WidgetLED ledPzem3(V21);
 
 // Declaring PZEM - 004 v3 sensors. 
 
@@ -121,28 +126,27 @@ void WiFiStationDisconnected(WiFiEvent_t event, WiFiEventInfo_t info){
 
 void readPzems(){
   
-  energy_phase01 = pzem1.energy();
-  energy_phase02 = pzem2.energy();
-  energy_phase03 = pzem3.energy();
-
   voltage_phase01 = pzem1.voltage();
   current_phase01 = pzem1.current();
   power_phase01 = pzem1.power(); 
+  energy_phase01 = pzem1.energy();
   pf_phase01 = pzem1.pf();
   frequency_phase01 = pzem1.frequency();
 
   voltage_phase02 = pzem2.voltage();
   current_phase02 = pzem2.current();
   power_phase02 = pzem2.power(); 
+  energy_phase02 = pzem2.energy();
   pf_phase02 = pzem2.pf();
   frequency_phase02 = pzem2.frequency();
 
   voltage_phase03 = pzem3.voltage();
   current_phase03 = pzem3.current();
   power_phase03 = pzem3.power(); 
+  energy_phase03 = pzem3.energy();
   pf_phase03 = pzem3.pf();
   frequency_phase03 = pzem3.frequency();
-
+  
   checkPzemError();
   
 }
@@ -153,25 +157,25 @@ void getData(){
   tax2 = preferences.getFloat("tax2", 0);
   tax3 = preferences.getFloat("tax3", 0);
   noTax = preferences.getFloat("noTax", 0);
-  pzem1LastEnergyReading = preferences.getFloat("pzem1LastEnergyReading", 0);
-  pzem2LastEnergyReading = preferences.getFloat("pzem2LastEnergyReading", 0);
-  pzem3LastEnergyReading = preferences.getFloat("pzem3LastEnergyReading", 0);
+  pzem1LastEnergy = preferences.getFloat("pzem1LastEnergy", 0);
+  pzem2LastEnergy = preferences.getFloat("pzem2LastEnergy", 0);
+  pzem3LastEnergy = preferences.getFloat("pzem3LastEnergy", 0);
 
   delay(500);
   
 }
 
 void checkPzemResetEnergy() {
-  if (pzem1LastEnergyReading > energy_phase01) {
-    pzem1LastEnergyReading = 0.0;
+  if (pzem1LastEnergy > energy_phase01) {
+    pzem1LastEnergy = 0.0;
   } 
   
-  if(pzem2LastEnergyReading > energy_phase02){
-    pzem2LastEnergyReading = 0.0;
+  if(pzem2LastEnergy > energy_phase02){
+    pzem2LastEnergy = 0.0;
   }
 
-  if(pzem3LastEnergyReading > energy_phase03) {
-    pzem3LastEnergyReading = 0.0;
+  if(pzem3LastEnergy > energy_phase03) {
+    pzem3LastEnergy = 0.0;
   }
 
 }
@@ -257,15 +261,15 @@ void calculateAndStorege() {
 
   checkPzemResetEnergy();
 
-  float totalEnergyPzem1 = energy_phase01 - pzem1LastEnergyReading;
-  float totalEnergyPzem2 = energy_phase02 - pzem2LastEnergyReading;
-  float totalEnergyPzem3 = energy_phase03 - pzem3LastEnergyReading;
+  float totalEnergyPzem1 = energy_phase01 - pzem1LastEnergy;
+  float totalEnergyPzem2 = energy_phase02 - pzem2LastEnergy;
+  float totalEnergyPzem3 = energy_phase03 - pzem3LastEnergy;
 
   totalEnergy = totalEnergyPzem1 + totalEnergyPzem2 + totalEnergyPzem3;
 
-  preferences.putFloat("pzem1LastEnergyReading", energy_phase01);
-  preferences.putFloat("pzem2LastEnergyReading", energy_phase02);
-  preferences.putFloat("pzem3LastEnergyReading", energy_phase03);
+  preferences.putFloat("pzem1LastEnergy", energy_phase01);
+  preferences.putFloat("pzem2LastEnergy", energy_phase02);
+  preferences.putFloat("pzem3LastEnergy", energy_phase03);
 
   delay(1000);
 
@@ -280,21 +284,21 @@ void myTimerEvent(){
   if(errorPzem1 || errorPzem2 || errorPzem3) {
    
     if(errorPzem1){
-      Blynk.setProperty(V17, "color", "#d3435c");
+      Blynk.setProperty(V19, "color", "#D3435C");
     } else {
-      Blynk.setProperty(V17, "color", "#5cd343");
+      Blynk.setProperty(V19, "color", "#5CD343");
     }
 
     if(errorPzem2) {
-      Blynk.setProperty(V18, "color", "#d3435c");
+      Blynk.setProperty(V20, "color", "#D3435C");
     } else {
-      Blynk.setProperty(V18, "color", "#5cd343");
+      Blynk.setProperty(V20, "color", "#5CD343");
     }
 
     if(errorPzem3) {
-      Blynk.setProperty(V19, "color", "#d3435c");
+      Blynk.setProperty(V21, "color", "#D3435C");
     } else {
-      Blynk.setProperty(V19, "color", "#5cd343");
+      Blynk.setProperty(V21, "color", "#5CD343");
     }
 
   } else if(wrongTime) {
@@ -329,17 +333,17 @@ void myTimerEvent(){
     Blynk.virtualWrite(V13, pf_phase03);
     Blynk.virtualWrite(V14, frequency_phase03);
   
-    Blynk.virtualWrite(V13, tax1);
-    Blynk.virtualWrite(V14, tax2);
-    Blynk.virtualWrite(V15, tax3);
-    Blynk.virtualWrite(V16, noTax);
+    Blynk.virtualWrite(V15, tax1);
+    Blynk.virtualWrite(V16, tax2);
+    Blynk.virtualWrite(V17, tax3);
+    Blynk.virtualWrite(V18, noTax);
 
-    // red: #d3435c
-    // green: #5cd343
+    // red: #D3435C
+    // green: #5CD343
 
-    Blynk.setProperty(V17, "color", "#5cd343");
-    Blynk.setProperty(V18, "color", "#5cd343");
-    Blynk.setProperty(V19, "color", "#5cd343");
+    Blynk.setProperty(V19, "color", "#5CD343");
+    Blynk.setProperty(V20, "color", "#5CD343");
+    Blynk.setProperty(V21, "color", "#5CD343");
   
   }
    
@@ -348,6 +352,7 @@ void myTimerEvent(){
 // Setup
 
 void setup() {
+  
   Serial.begin(115200);
 
   configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
@@ -364,12 +369,17 @@ void setup() {
 
   Blynk.begin(auth, ssid, pass);
   timer.setInterval(10000L, myTimerEvent);
+
+  ledPzem1.on();
+  ledPzem2.on();
+  ledPzem3.on();
   
 }
 
 // Loop. This area has always must be clean.
 
 void loop() {
+
   Blynk.run();
   timer.run();
   
